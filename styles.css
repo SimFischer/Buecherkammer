@@ -9,3 +9,5 @@
 
 
 .book-cover strong{hyphens:auto}@media(max-width:760px){.filterbar select{flex:1 1 140px}.filterbar .grade-filter{flex:1 1 115px}.filterbar .toggle-chip{flex:0 0 auto}}
+
+.help-panel{grid-column:1/-1;display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:#edf0e4}.help-symbol{width:52px;height:58px;display:grid;place-items:center;background:#dfe8d6;color:var(--green);border-radius:14px;transform:rotate(-4deg);flex-shrink:0}.help-symbol .icon{width:29px;height:29px}.help-description{flex:1;min-width:220px}.help-description h2{margin-bottom:7px}.settings-grid .help-description p{margin:0;max-width:480px}.help-panel .button-row{gap:10px;flex-wrap:wrap}.help-panel .btn{white-space:normal}@media(max-width:760px){.help-panel{gap:15px}.help-description{min-width:180px}.help-panel .button-row{width:100%}.help-panel .button-row a{flex:1 1 100%}}
