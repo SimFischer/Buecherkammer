@@ -1,4 +1,4 @@
-const CACHE = 'buecherkammer-v1.7';
+const CACHE = 'buecherkammer-v1.8';
 const FILES = ['./', './index.html', './styles.css', './js/app.js', './js/ui.js', './js/views.js', './js/store.js', './js/insights.js', './js/reports.js', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './assets/buecherkammer-spickzettel.pdf'];
 self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
