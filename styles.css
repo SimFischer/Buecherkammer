@@ -11,3 +11,14 @@
 .book-cover strong{hyphens:auto}@media(max-width:760px){.filterbar select{flex:1 1 140px}.filterbar .grade-filter{flex:1 1 115px}.filterbar .toggle-chip{flex:0 0 auto}}
 
 .help-panel{grid-column:1/-1;display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:#edf0e4}.help-symbol{width:52px;height:58px;display:grid;place-items:center;background:#dfe8d6;color:var(--green);border-radius:14px;transform:rotate(-4deg);flex-shrink:0}.help-symbol .icon{width:29px;height:29px}.help-description{flex:1;min-width:220px}.help-description h2{margin-bottom:7px}.settings-grid .help-description p{margin:0;max-width:480px}.help-panel .button-row{gap:10px;flex-wrap:wrap}.help-panel .btn{white-space:normal}@media(max-width:760px){.help-panel{gap:15px}.help-description{min-width:180px}.help-panel .button-row{width:100%}.help-panel .button-row a{flex:1 1 100%}}
+
+.sidebar-note>.icon{top:4px;right:12px;width:20px;height:20px}
+.global-search{background:#edf0e4;border:1px solid #d8e2d1;border-radius:13px;padding:0 13px;transition:background .18s,border-color .18s,box-shadow .18s}
+.global-search .icon{color:#53715b}
+.global-search input{color:var(--green)}
+.global-search input::placeholder{color:#64775f;opacity:1}
+.global-search:hover{background:#e5ebdc;border-color:#c8d6bf}
+.global-search:focus-within{background:#f2f5eb;border-color:#789571;box-shadow:0 0 0 3px #244d431a}
+.global-search input:focus{outline:none}
+@media(max-height:790px) and (min-width:761px){.sidebar-note{padding-top:34px}}
+@media(max-width:760px){.global-search{border-top-color:#d8e2d1}}
