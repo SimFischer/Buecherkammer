@@ -8,6 +8,7 @@ const paths = {
   check: '<path d="m5 12 4 4L19 6"/>',
   inventory: '<rect x="4" y="4" width="16" height="18" rx="3"/><path d="M9 2h6v4H9zM8 13l3 3 5-6"/>',
   settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>',
+  chart: '<path d="M4 3v18h17M8 16v-5m5 5V6m5 10v-8"/>',
   search: '<circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',

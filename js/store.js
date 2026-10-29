@@ -1,5 +1,11 @@
+import { validDate } from './insights.js';
 export const STATUS = { available: 'Verfügbar', loaned: 'Ausgeliehen', damaged: 'Beschädigt', missing: 'Vermisst', retired: 'Ausgesondert' };
-export const empty = () => ({ version: 1, revision: 0, nextCopy: 1, works: [], copies: [], students: [], categories: [], actions: [], inventory: null, demo: false });
+export const empty = () => ({ version: 1, revision: 0, nextCopy: 1, works: [], copies: [], students: [], categories: [], actions: [], inventory: null, demo: false, usageSince: new Date().toISOString(), preferences: { lastClass: '', recentStudents: [], categoryUses: {} } });
+function normalize(state) {
+  state.usageSince ||= new Date().toISOString();
+  state.preferences ||= { lastClass: '', recentStudents: [], categoryUses: {} };
+  return state;
+}
 let db;
 export let data = empty();
 export async function openStore() {
@@ -9,7 +15,8 @@ export async function openStore() {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
-  data = await read() || empty();
+  data = normalize(await read() || empty());
+  if (!(await read())?.usageSince) await change(() => {});
 }
 function read() {
   return new Promise((resolve, reject) => {
@@ -18,7 +25,7 @@ function read() {
     req.onerror = () => reject(req.error);
   });
 }
-export async function reload() { data = await read() || empty(); }
+export async function reload() { data = normalize(await read() || empty()); }
 export function uid() { return crypto.randomUUID(); }
 export async function change(update, label) {
   const next = structuredClone(data);
@@ -51,17 +58,25 @@ export function addCopies(state, workId, count, location = '') {
     state.copies.push({ id, workId, status: 'available', condition: '', location, note: '' });
   }
 }
-export function lend(state, copyId, studentId) {
+export function lend(state, copyId, studentId, dueDate = '') {
   const copy = state.copies.find(c => c.id === copyId);
   const student = state.students.find(s => s.id === studentId);
   if (!student?.active) throw new Error('Bitte eine aktive Schüler-ID wählen.');
   if (!copy || copy.status !== 'available') throw new Error('Dieses Exemplar ist nicht verfügbar.');
+  if (dueDate && !validDate(dueDate)) throw new Error('Bitte ein gültiges Rückgabedatum wählen.');
   copy.status = 'loaned'; copy.studentId = studentId; copy.loanedAt = new Date().toISOString();
+  if (dueDate) copy.dueDate = dueDate;
+  const work = state.works.find(w => w.id === copy.workId);
+  work.loanCount = (work.loanCount || 0) + 1; work.lastLoanedAt = copy.loanedAt;
+  normalize(state);
+  state.preferences.lastClass = student.className;
+  state.preferences.recentStudents = [studentId, ...state.preferences.recentStudents.filter(id => id !== studentId)].slice(0, 6);
+  if (work.categoryId) state.preferences.categoryUses = { ...state.preferences.categoryUses, [work.categoryId]: (Object.hasOwn(state.preferences.categoryUses, work.categoryId) ? state.preferences.categoryUses[work.categoryId] : 0) + 1 };
 }
 export function giveBack(state, copyId) {
   const copy = state.copies.find(c => c.id === copyId);
   if (!copy || copy.status !== 'loaned') throw new Error('Dieses Exemplar ist nicht ausgeliehen.');
-  copy.status = 'available'; delete copy.studentId; delete copy.loanedAt;
+  copy.status = 'available'; delete copy.studentId; delete copy.loanedAt; delete copy.dueDate;
 }
 export const copiesOf = id => data.copies.filter(c => c.workId === id);
 export const workOf = copy => data.works.find(w => w.id === copy.workId);
@@ -81,6 +96,14 @@ export function validateBackup(raw) {
   if (!raw.works.every(w => str(w.title, 300) && w.title.trim() && str(w.author, 300) && Array.isArray(w.tags) && w.tags.every(t => str(t, 100)) && (!w.categoryId || has(raw.categories, w.categoryId)) && ['isbn', 'series', 'grade', 'description', 'cover'].every(k => w[k] === undefined || str(w[k], k === 'cover' ? 4000000 : 10000)) && (!w.cover || /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(w.cover)))) fail();
   if (!raw.students.every(s => /^[A-Z0-9ÄÖÜ][A-Z0-9ÄÖÜ._-]{0,39}$/.test(s.id) && str(s.className, 30) && s.className.trim() && typeof s.active === 'boolean')) fail();
   if (!raw.copies.every(c => has(raw.works, c.workId) && Object.hasOwn(STATUS, c.status) && ['location', 'condition', 'note'].every(k => c[k] === undefined || str(c[k])) && (c.status === 'loaned' ? has(raw.students, c.studentId) && str(c.loanedAt) && Number.isFinite(Date.parse(c.loanedAt)) : !c.studentId && !c.loanedAt))) fail();
+  const timestamp = v => str(v, 50) && Number.isFinite(Date.parse(v));
+  if (raw.usageSince !== undefined && !timestamp(raw.usageSince)) fail();
+  if (!raw.works.every(w => (w.loanCount === undefined || Number.isSafeInteger(w.loanCount) && w.loanCount >= 0) && ['lastLoanedAt', 'addedAt'].every(k => w[k] === undefined || timestamp(w[k])))) fail();
+  if (!raw.copies.every(c => c.dueDate === undefined || c.status === 'loaned' && validDate(c.dueDate))) fail();
+  if (raw.preferences !== undefined) {
+    const p = raw.preferences;
+    if (!p || !str(p.lastClass, 30) || !Array.isArray(p.recentStudents) || p.recentStudents.length > 6 || !p.recentStudents.every(id => has(raw.students, id)) || !p.categoryUses || typeof p.categoryUses !== 'object' || Array.isArray(p.categoryUses) || !Object.entries(p.categoryUses).every(([id, n]) => has(raw.categories, id) && Number.isSafeInteger(n) && n >= 0)) fail();
+  }
   if (raw.inventory !== null && raw.inventory !== undefined) {
     const inv = raw.inventory;
     if (!str(inv.id) || !str(inv.startedAt) || !Number.isFinite(Date.parse(inv.startedAt)) || !Array.isArray(inv.expected) || !Array.isArray(inv.found) || !inv.expected.every(id => has(raw.copies, id)) || !inv.found.every(id => inv.expected.includes(id)) || new Set(inv.expected).size !== inv.expected.length || new Set(inv.found).size !== inv.found.length) fail();
@@ -88,8 +111,10 @@ export function validateBackup(raw) {
   // Whitelist fields: backups cannot introduce names or personal reading histories.
   const pick = (obj, keys) => Object.fromEntries(keys.filter(k => obj[k] !== undefined).map(k => [k, obj[k]]));
   const clean = empty();
-  clean.works = raw.works.map(w => pick(w, ['id', 'title', 'author', 'isbn', 'series', 'categoryId', 'tags', 'grade', 'description', 'cover']));
-  clean.copies = raw.copies.map(c => pick(c, ['id', 'workId', 'status', 'condition', 'location', 'note', 'studentId', 'loanedAt']));
+  clean.works = raw.works.map(w => pick(w, ['id', 'title', 'author', 'isbn', 'series', 'categoryId', 'tags', 'grade', 'description', 'cover', 'loanCount', 'lastLoanedAt', 'addedAt']));
+  clean.copies = raw.copies.map(c => pick(c, ['id', 'workId', 'status', 'condition', 'location', 'note', 'studentId', 'loanedAt', 'dueDate']));
+  if (raw.usageSince) clean.usageSince = raw.usageSince;
+  if (raw.preferences) clean.preferences = { lastClass: raw.preferences.lastClass, recentStudents: [...new Set(raw.preferences.recentStudents)], categoryUses: Object.fromEntries(Object.entries(raw.preferences.categoryUses)) };
   clean.students = raw.students.map(s => pick(s, ['id', 'className', 'active']));
   clean.categories = raw.categories.map(c => pick(c, ['id', 'name']));
   clean.inventory = raw.inventory ? pick(raw.inventory, ['id', 'startedAt', 'expected', 'found', 'completedAt']) : null;

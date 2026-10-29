@@ -2,5 +2,5 @@
   "name": "buecherkammer",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node server.mjs", "check": "node --check js/app.js && node --check js/views.js && node --check js/store.js && node --check js/ui.js && node --check sw.js" }
+  "scripts": { "start": "node server.mjs", "check": "node --check js/app.js && node --check js/views.js && node --check js/store.js && node --check js/insights.js && node --check js/reports.js && node --check js/ui.js && node --check sw.js" }
 }
